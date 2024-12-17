@@ -1,5 +1,6 @@
 # DN-Splatter + AGS-Mesh
 This repo implements research papers ([DN-Splatter](https://maturk.github.io/dn-splatter/) and [AGS-Mesh](https://xuqianren.github.io/ags_mesh_website/)) for depth and normal supervision of Gaussian splatting models for improved novel-view synthesis using smartphone data (iPhones) and mesh reconstruction.
+FORKED REPO.
 
 ### Pipelines:
 <p align="center">
