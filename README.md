@@ -5,11 +5,11 @@ FORKED REPO.
 ### Pipelines:
 <p align="center">
     <figure style="display: inline-block; text-align: center; margin: 10px;">
-        <img src="./assets/pipeline_crop.jpg" alt="DN-Splatter Pipeline" height="250"/>
+        <img src="./assets/pipeline_crop.jpg" alt="DN-Splatter Pipeline" width="350"/>
         <figcaption>DN-Splatter</figcaption>
     </figure>
     <figure style="display: inline-block; text-align: center; margin: 10px;">
-        <img src="./assets/pipeline_ags_mesh.png" alt="AGS-Mesh Pipeline" height="250"/>
+        <img src="./assets/pipeline_ags_mesh.png" alt="AGS-Mesh Pipeline" width="350"/>
         <figcaption>AGS-Mesh</figcaption>
     </figure>
 </p>
@@ -55,7 +55,7 @@ https://github.com/maturk/dn-splatter/assets/30566358/9b3ffe9d-5fe9-4b8c-8426-d5
 </details>
 
 ## Updates
-- 29.11.2024: We release [AGS-Mesh](https://xuqianren.github.io/ags_mesh_website/) which improves mesh reconstruction using a novel depth and normal filtering strategy, and octree-based isosurface extraction method. We release code for Splatfacto based AGS-Mesh model and 2DGS based AGS-Mesh model. We release AGS-Mesh plug in code for both DN-Splatter and Inria 2DGS version. Please switch to [AGS-Mesh-2dgs](https://github.com/maturk/dn-splatter/tree/ags-mesh-2dgs) for Inria 2DGS version.
+- 29.11.2024: We release [AGS-Mesh](https://xuqianren.github.io/ags_mesh_website/) method, which improves mesh reconstruction using a novel depth and normal filtering strategy, and octree-based isosurface extraction method. We release code for Splatfacto based AGS-Mesh model and 2DGS based AGS-Mesh model. We release AGS-Mesh plug in code for both DN-Splatter and Inria 2DGS version. Please switch to [AGS-Mesh-2dgs](https://github.com/maturk/dn-splatter/tree/ags-mesh-2dgs) for Inria 2DGS version or open the [AGS-Mesh](https://github.com/XuqianRen/AGS_Mesh) for more details. 📣
 - 17.10.2024: [FusionSense](https://github.com/ai4ce/FusionSense) improves DN-Splatter in sparse settings for robotic tactile applications! 🚀
 - 04.09.2024: Support Open3d TSDF to extract mesh, support Patch-based Depth Correlation Loss from [SparseGS](https://github.com/ForMyCat/SparseGS) for monodepth supervision, support visualizing normal estimates from the Gaussian geometry and estimated surface normal from depths, support colmap SFM point cloud initialization for MuSHRoom dataset.
 - 14.06.2024: Support gsplat [v1.0.0 🚀](https://x.com/ruilong_li/status/1799156694527909895). Faster training and better memory consumption. Training with `--pipeline.model.predict_normals` is about 20% slower than without.
@@ -127,20 +127,19 @@ We highly reccommend using low res normal maps, since generating HD versions fro
 To generate normals from DSINE, run the following command:
 
 ```bash
-python dn_splatter/scripts/normals_from_pretrain.py --data-dir [PATH_TO_DATA] --model-type dsine
+python dn_splatter/scripts/normals_from_pretrain.py --data-dir [PATH_TO_DATA] --normal-format dsine
 ```
 
-If using DSINE normals for supervision, remember to use the `--normal-format opencv` in your `ns-train` command. An example command is as follows:
+If using DSINE normals for supervision, remember to use the `--normal-format dsine` in your `ns-train` command. An example command is as follows:
 
 ```bash
-ns-train dn-splatter --pipeline.model.use-normal-loss True --pipeline.model.normal-supervision mono replica --data ./datasets/Replica/ --normals-from pretrained --normal-format opencv
+ns-train dn-splatter --pipeline.model.use-normal-loss True --pipeline.model.normal-supervision mono replica --data ./datasets/Replica/ --normal-format dsine
 ```
 
 #### Important notes:
 Default save path of generated normals is `data_root/normals_from_pretrain`
-And to enable training with pretrained normals, add `--normals-from pretrained` flag in the dataparser. 
 
-NOTE: different monocular networks can use varying camera coordinate systems for saving/visualizing predicted normals in the camera frame. We support both OpenGL and OpenCV coordinate systems. Each dataparser has a flag `--normal-format [opengl/opencv]` to distinguish between them. We render normals into the camera frame according to OpenCV color coding which is similar to Open3D. Some software might have different conventions. Omnidata normals are stored in OpenGL coordinates, but we convert them to OpenCV for consistency across the repo.
+NOTE: different monocular networks can use varying camera coordinate systems for saving/visualizing predicted normals in the camera frame. We support both OpenGL and OpenCV coordinate systems. Each dataparser has a flag `--normal-format [omnidata/dsine]` to distinguish between them. We render normals into the camera frame according to OpenCV color coding which is similar to Open3D. Some software might have different conventions. Omnidata normals are stored in OpenGL coordinates, but we convert them to OpenCV for consistency across the repo.
 
 </details>
 <details close>
@@ -203,16 +202,17 @@ python dn_splatter/scripts/align_depth.py --data [path_to_data_root] \
 </details>
 
 <details close>
-<summary> Depth mask generated for AGS-Mesh </summary>
+<summary> Depth mask filter for AGS-Mesh method</summary>
 
-To generate the depth mask to run AGS-Mesh, using:
+The AGS-Mesh method filters inconsistent depth estimates using a depth->normal consistency check. To generate the depth masks, use the following script:
 ```bash
-python depth_normal_consistency.py --data_dir <dataset_path> --transform_name <transformation script.json>                                    
+python dn_splatter/scripts/depth_normal_consistency.py --data-dir <dataset_path> --transforms_name <transforms.json>  --normal-format [omnidata/dsine]                                
 ```
+where `--data-dir` is the root dataset path (e.g. room_datasets/vr_room/iphone/long_capture) and `--transforms-name` is the name of the json file containing dataset data (e.g. transformations_colmap.json for the mushroom dataset) and `--normal-format` refers to what model was used to generate normal maps. The omnidata and dsine networks have different coordinate systems, so this has to be carefully dealt with.
 </details>
 
 ## Usage
-This repo registers a model called `dn-splatter` and `ags-mesh` with various additional options:
+This repo registers two models called `dn-splatter` and `ags-mesh` with various additional options:
 
 | Command | Description |
 |--------------------|---|
@@ -227,25 +227,25 @@ This repo registers a model called `dn-splatter` and `ags-mesh` with various add
 Please check the dn_model.py for a full list of supported configs (some are only experimental).
 
 ## Model overviews
-`dn-splatter` is the baseline model that implements depth and normal supervision within 3DGS. `ags-mesh` improves dn-splatter with a novel depth and normal filtering strategy. Please see [dn-splatter](https://arxiv.org/abs/2403.17822) and [ags-mesh](https://arxiv.org/abs/2411.19271) research papers for more details regarding model architectures. We provide a 2DGS based version of AGS-Mesh in the ags-mesh-2dgs branch.
+`dn-splatter` is the baseline model that implements depth and normal supervision within 3DGS. `ags-mesh` improves dn-splatter with a novel depth and normal filtering strategy. Please see [dn-splatter](https://arxiv.org/abs/2403.17822) and [ags-mesh](https://arxiv.org/abs/2411.19271) research papers for more details regarding model architectures. We provide a 2DGS based version of AGS-Mesh in the ags-mesh-2dgs branch and the [ags_mesh](https://github.com/XuqianRen/AGS_Mesh) repo.
 
 ## Recommended settings:
 For larger indoor captures with sensor depth data (e.g. MuSHRoom / ScanNet++ datasets):
 
 ```bash
 # to run the dn-splatter model
-ns-train dn-splatter --data PATH_TO_DATA \
-                 --pipeline.model.use-depth-loss True \
+ns-train dn-splatter --pipeline.model.use-depth-loss True \
                  --pipeline.model.depth-lambda 0.2 \
                  --pipeline.model.use-normal-loss True \
                  --pipeline.model.use-normal-tv-loss True \
                  --pipeline.model.normal-supervision (mono/depth)
+                 <dataparser_name (normal-nerfstudio, mushroom, scannetpp, etc)> --data PATH_TO_DATA 
 # to run the ags-mesh model
-ns-train ags-mesh --data PATH_TO_DATA \
-                 --pipeline.model.use-depth-loss True \
+ns-train ags-mesh --pipeline.model.use-depth-loss True \
                  --pipeline.model.depth-lambda 0.2 \
                  --pipeline.model.use-normal-loss True \
                  --pipeline.model.normal-supervision (mono/depth)
+                 <dataparser_name (normal-nerfstudio, mushroom, scannetpp, etc)> --data PATH_TO_DATA --load-depth-confidence-masks True
 ```
 
 ### dn-splatter-big:
@@ -263,6 +263,12 @@ To extract a mesh, run the following command:
 gs-mesh {dn, tsdf, o3dtsdf, sugar-coarse, gaussians, marching} --load-config [PATH] --output-dir [PATH]
 ```
 We reccommend using `gs-mesh o3dtsdf`.
+
+IsoOctree mesh extraction for more smooth surface:
+```bash
+python dn_splatter/scripts/isooctree_dn.py <root_folder> --transformation_path <pose_json_path> \
+--tsdf_rel 0.03 --output_mesh_file <output_path/output.ply> --subdivision_threshold=100
+```
 
 <details close>
 <summary> Mesh algorithm details </summary>
@@ -296,12 +302,12 @@ python dn_splatter/scripts/process_sai.py [PATH_TO_SAI_INPUT_FOLDER] [PATH_TO_OU
 
 To train with the custom data:
 ```bash
-ns-train dn-splatter --data PATH_TO_DATA \
-                 --pipeline.model.use-depth-loss True \
+ns-train dn-splatter --pipeline.model.use-depth-loss True \
                  --pipeline.model.depth-lambda 0.2 \
                  --pipeline.model.use-normal-loss True \
                  --pipeline.model.use-normal-tv-loss True \
                  --pipeline.model.normal-supervision depth \
+                 normal-nerfstudio --data PATH_TO_DATA
 ```
 
 For other custom datasets, use the Nerfstudio [conventions](https://docs.nerf.studio/quickstart/data_conventions.html#depth-images) and train with the above command.
@@ -309,20 +315,20 @@ For other custom datasets, use the Nerfstudio [conventions](https://docs.nerf.st
 ## Datasets
 
 Other preprocessed datasets are supported by dataparsers with the keywords `mushroom`, `replica`, `scannetpp`, `nrgbd`, `dtu`, `coolermap`.
-To train with a dataset use the following:
+To train with a specific dataset, the command follows the sequence:
 
 ```bash
-ns-train dn-splatter [OPTIONS] [mushroom/replica/scannet/nrgbd/dtu/coolermap] --data [DATASET_PATH]
+ns-train dn-splatter [OPTIONS] [mushroom/replica/scannet/nrgbd/dtu/coolermap] --data [DATASET_PATH] --[OPTIONAL CONFIGS]
 ```
 
-Dataparsers have their own options, to see the full list use  ```ns-train dn-splatter [mushroom/replica/scannet/nrgbd/dtu/coolermap] --help```. Some useful ones are:
+Dataparsers have their own options, to see the full list use  ```ns-train dn-splatter [mushroom/replica/scannet/nrgbd/dtu/coolermap] --help```.  Please use the `--help` flag to see all supported commands for each dataset (they are all a bit unique in how they process data). Some useful ones are:
 
 ```
   --depth-mode        : ["sensor","mono","all", "none"] determines what depths to load.
   --load-normals      : [True/False] whether to load normals or not.
-  --normals-from      : ["depth", "pretrained"] generate pseudo-ground truth normals from depth maps or from pretrained omnimodel.
-  --normal-format     : ["opengl", "opencv"] What coordinate system normals are saved in camera frame.
+  --normal-format     : ["omndiata", "dsine"] What monocular normal was used to generate normal maps (there are slight coordinate differences).
   --load-pcd-normals  : [True/False] initialise gaussian scales/rotations based on estimated SfM normals.
+  --load-depth-confidence-masks : [True/False] used for the filtering strategy proposed in AGS-Mesh.
 ```
 
 ### Supported dataparsers:
